@@ -3,16 +3,21 @@ const fs = require('fs');
 const path = require('path');
 
 class CsvLogger {
-  constructor(filenamePrefix = 'report', reportDir = 'reports') {
+  constructor(filenamePrefix = 'report', type = 'video', reportDir = 'reports') {
     // Ensure reports directory exists
     this.reportDir = path.join(__dirname, reportDir);
     if (!fs.existsSync(this.reportDir)) {
       fs.mkdirSync(this.reportDir, { recursive: true });
     }
-    
+
     this.filename = this._generateTimestampedFilename(filenamePrefix);
     this.filePath = path.join(this.reportDir, this.filename);
-    this.headers = 'File URL,file processed, create ad status, creative mode,Ad Group Name,Ad Group ID, Ad ID, video id,Error,Timestamp\n';
+    if(type === 'video'){
+      this.headers = 'File URL,file processed, create ad status, creative mode,Ad Group Name,Ad Group ID, Ad ID, video id,Error,Timestamp\n';
+    }else if(type === 'retry-video'){
+      this.headers = 'Ad Group ID, video id,create ad status,creative mode,Ad Group Name, Ad ID,Error,Timestamp\n';
+    }
+
     this._initializeFile();
   }
 
@@ -36,7 +41,7 @@ class CsvLogger {
     console.log(`Logging to: ${this.filePath}`);
   }
 
-  log(videoUrl, entry) {
+  logVideo(videoUrl, entry) {
     const timestamp = new Date().toISOString();
     const row = [
       `"${videoUrl}"`,
@@ -47,6 +52,22 @@ class CsvLogger {
       `"${entry.adgroup_id || ''}"`,
       `"${entry.ad_id || ''}"`,
       `"${entry.video_id || ''}"`,
+      `"${(entry.error || '').toString().replace(/"/g, '""')}"`,
+      `"${timestamp}"`
+    ].join(',');
+
+    fs.appendFileSync(this.filePath, row + '\n');
+  }
+
+  logRetryVideo(adgroup_id, video_id, entry) {
+    const timestamp = new Date().toISOString();
+    const row = [
+      `"${adgroup_id}"`,
+      `"${video_id}"`,
+      `"${entry.create_ad_status || ''}"`,
+      `"${entry.creative_material_mode || ''}"`,
+      `"${entry.adgroup_name || ''}"`,
+      `"${entry.ad_id || ''}"`,
       `"${(entry.error || '').toString().replace(/"/g, '""')}"`,
       `"${timestamp}"`
     ].join(',');
