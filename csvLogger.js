@@ -13,9 +13,12 @@ class CsvLogger {
     this.filename = this._generateTimestampedFilename(filenamePrefix);
     this.filePath = path.join(this.reportDir, this.filename);
     if(type === 'video'){
-      this.headers = 'File URL,file processed, create ad status, creative mode,Ad Group Name,Ad Group ID, Ad ID, video id,Error,Timestamp\n';
+      this.headers = 'File URL,File processed,Create ad status,Creative mode,Ad Group Name,Ad Group ID, Ad ID,Video id,Error,Timestamp\n';
     }else if(type === 'retry-video'){
-      this.headers = 'Ad Group ID, video id,create ad status,creative mode,Ad Group Name, Ad ID,Error,Timestamp\n';
+      this.headers = 'Ad Group ID, Video id,Create ad status,Creative mode,Ad Group Name, Ad ID,Error,Timestamp\n';
+    }
+    else if(type === 'tiktok-one'){
+      this.headers = 'Category,Language, Material ID,Create ad status,Creative mode,Ad Group Name, Ad Group ID, Ad ID, Video id,Error,Timestamp\n';
     }
 
     this._initializeFile();
@@ -68,6 +71,25 @@ class CsvLogger {
       `"${entry.creative_material_mode || ''}"`,
       `"${entry.adgroup_name || ''}"`,
       `"${entry.ad_id || ''}"`,
+      `"${(entry.error || '').toString().replace(/"/g, '""')}"`,
+      `"${timestamp}"`
+    ].join(',');
+
+    fs.appendFileSync(this.filePath, row + '\n');
+  }
+
+  logTiktokOneVideo(category,language,material_id, entry) {
+    const timestamp = new Date().toISOString();
+    const row = [
+      `"${category}"`,
+      `"${language}"`,
+      `"${material_id}"`,
+      `"${entry.create_ad_status || ''}"`,
+      `"${entry.creative_material_mode || ''}"`,
+      `"${entry.adgroup_name || ''}"`,
+      `"${entry.adgroup_id || ''}"`,
+      `"${entry.ad_id || ''}"`,
+      `"${entry.video_id || ''}"`,
       `"${(entry.error || '').toString().replace(/"/g, '""')}"`,
       `"${timestamp}"`
     ].join(',');
