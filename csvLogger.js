@@ -19,6 +19,8 @@ class CsvLogger {
     }
     else if(type === 'tiktok-one'){
       this.headers = 'Category,Language, Material ID,Create ad status,Creative mode,Ad Group Name, Ad Group ID, Ad ID, Video id,Error,Timestamp\n';
+    }else if(type === 'image'){
+      this.headers = 'File URLs,File processed,Create ad status,Creative mode,Ad Group Name,Ad Group ID, Ad ID,Images IDs,Error,Timestamp\n';
     }
 
     this._initializeFile();
@@ -55,6 +57,24 @@ class CsvLogger {
       `"${entry.adgroup_id || ''}"`,
       `"${entry.ad_id || ''}"`,
       `"${entry.video_id || ''}"`,
+      `"${(entry.error || '').toString().replace(/"/g, '""')}"`,
+      `"${timestamp}"`
+    ].join(',');
+
+    fs.appendFileSync(this.filePath, row + '\n');
+  }
+
+  logImage(imageUrl, entry) {
+    const timestamp = new Date().toISOString();
+    const row = [
+      `"${imageUrl}"`,
+      `"${entry.file_processed || ''}"`,
+      `"${entry.create_ad_status || ''}"`,
+      `"${entry.creative_material_mode || ''}"`,
+      `"${entry.adgroup_name || ''}"`,
+      `"${entry.adgroup_id || ''}"`,
+      `"${entry.ad_id || ''}"`,
+      `"${entry.image_id || ''}"`,
       `"${(entry.error || '').toString().replace(/"/g, '""')}"`,
       `"${timestamp}"`
     ].join(',');

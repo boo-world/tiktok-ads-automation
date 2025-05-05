@@ -70,7 +70,8 @@ async function getAdInfoFromAdGroup(adgroupId) {
     card_id: firstAd?.card_id,
     page_id: firstAd?.page_id,
     ad_format: firstAd?.ad_format,
-    landing_page_urls: firstAd.landing_page_urls,
+    landing_page_urls: firstAd?.landing_page_urls,
+    music_id: firstAd?.music_id
   };
 }
 
@@ -202,9 +203,12 @@ async function prepareCreative(ad, videoId, imageId, adInfo) {
     ad_format: ad.format,
     ad_text: adInfo.ad_text,
     call_to_action: "DOWNLOAD_NOW",
-    video_id: videoId,
-    image_ids: [imageId],
+    image_ids: Array.isArray(imageId) ? imageId: [imageId],
   };
+
+  if(ad.format === 'SINGLE_VIDEO'){
+    creative.video_id = videoId
+  }
 
   if (ad.adgroup_name.toLowerCase().includes(" || android || ")) {
     creative.landing_page_url =
@@ -241,6 +245,11 @@ async function prepareCreative(ad, videoId, imageId, adInfo) {
   if (adInfo.page_id) {
     creative.page_id = adInfo.page_id;
   }
+
+  if (adInfo.music_id) {
+    creative.music_id = adInfo.music_id;
+  }
+
   return {
     adgroup_id: ad.adgroup_id,
     creative,
@@ -291,7 +300,7 @@ async function sendBatch(group, creativeBatch, tiktokClient) {
     creatives: creativeBatch,
   };
 
-  console.log("payload: ", payload);
+  console.log("payload: ", JSON.stringify(payload, null, 2));
 
   if (DRYRUN !== "NO")
     return {
@@ -332,7 +341,10 @@ async function sendBatch(group, creativeBatch, tiktokClient) {
         creative_material_mode: group.creative_material_mode,
         adgroup_name: group.adgroup_name,
         adgroup_id: group.adgroup_id,
-        video_id: creativeBatch[0].video_id,
+        ...(creativeBatch[0].video_id 
+            ? { video_id: creativeBatch[0].video_id } 
+            : { image_id: creativeBatch[0].image_ids }
+        ),
         error: resp.message,
       };
     }
