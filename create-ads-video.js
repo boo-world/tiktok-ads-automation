@@ -8,7 +8,7 @@ const path = require('path');
 const CsvLogger = require('./csvLogger');
 const TikTokApiClient = require('./TikTokApiClient');
 const {updateAdACO, getAdAcoDetail} = require('./ACO')
-const { getSuggestedCoverImageId, searchAdGroupsByKeyword, getAdInfoFromAdGroup, prepareCreative, groupKeyword, getOriginalFilenameFromUrl } = require('./common')
+const { getSuggestedCoverImageId, searchAdGroupsByKeyword, getAdInfoFromAdGroup, prepareCreative, groupKeyword, getOriginalFilenameFromUrl, sendBatch } = require('./common')
 const { DRYRUN, GROUP_TEST_ONLY, ADVERTISER_ID } = require('./const')
 
 const tiktokClient = new TikTokApiClient();
@@ -16,15 +16,15 @@ const tiktokClient = new TikTokApiClient();
 const CSV_FILE = process.env.CSV_FILE || 'test_data.csv'
 
 
-async function uploadVideoOnce(fileNameWithoutExt, buffer) {
+async function uploadVideoOnce(fileNameWithTimestamp, buffer) {
   if(DRYRUN !== 'NO') return 'DRYRUN_VIDEO_ID'
 
   const signature = crypto.createHash('md5').update(buffer).digest('hex');
   const form = new FormData();
 
   form.append('advertiser_id', ADVERTISER_ID);
-  form.append('file_name', fileNameWithoutExt);
-  form.append('video_file', buffer, { filename: `${fileNameWithoutExt}.mp4` });
+  form.append('file_name', fileNameWithTimestamp);
+  form.append('video_file', buffer, { filename: fileNameWithTimestamp });
   form.append('video_signature', signature);
 
   const resp = await tiktokClient.request({
@@ -58,13 +58,13 @@ async function processAds(ads) {
 
     try {
       console.log('download video...')
-      const { buffer, originalFilename } = await getOriginalFilenameFromUrl(videoUrl);
-      const fileNameWithoutExt = originalFilename.replace(/\.mp4$/i, '');
-      const adGroupKeyword = groupKeyword(fileNameWithoutExt)
-      console.log('fileNameWithoutExt: ', fileNameWithoutExt)
-      console.log('adGroupKeyword: ', adGroupKeyword)
       const TIMESTAMP = Math.floor(Date.now() / 1000);
-      const videoId = await uploadVideoOnce(`${fileNameWithoutExt}-API_Upload-${TIMESTAMP}`, buffer);
+      const { buffer, originalFilename } = await getOriginalFilenameFromUrl(videoUrl);
+      const fileNameWithTimestamp = originalFilename.replace(/(\.[^/.]+)?$/, `-API_Upload-${TIMESTAMP}$1`)
+      const adGroupKeyword = groupKeyword(fileNameWithTimestamp)
+      console.log('fileNameWithTimestamp: ', fileNameWithTimestamp)
+      console.log('adGroupKeyword: ', adGroupKeyword)
+      const videoId = await uploadVideoOnce(`${fileNameWithTimestamp}-API_Upload-${TIMESTAMP}`, buffer);
       await new Promise(res => setTimeout(res, 5000)); // wait for 3 seconds
       const imageId = await getSuggestedCoverImageId(`${videoId}`, tiktokClient);
       file_processed = 'SUCCESS'
@@ -84,7 +84,7 @@ async function processAds(ads) {
       }
       console.log('adGroups: ', adGroups)
       for (const group of adGroups) {
-        let ad_name = fileNameWithoutExt
+        let ad_name = fileNameWithTimestamp
         if(DRYRUN === 'NO' && GROUP_TEST_ONLY === 'NO' && (group.adgroup_id === '1830096301782322' || group.adgroup_id === '1829719684525074')){
           csvLogger.logVideo(videoUrl,
             {
@@ -137,7 +137,7 @@ async function processAds(ads) {
                 adgroupId: group.adgroup_id,
                 oldMediaInfoList: adAcoData.list[0].media_info_list,
                 newVideoId: videoId,
-                newVideoName: originalFilename,
+                newVideoName: fileNameWithTimestamp,
                 newWebUris: imageId,
               });
               console.log(`✅ update smart creative on ad group ${group.adgroup_name} - ${group.adgroup_id}`);

@@ -50,8 +50,8 @@ async function ProcessTiktokOneVideos(rows) {
                 tiktokClient
             );
             const videoId = videoInfo.video_id;
-            const originalFilename = `${videoInfo.file_name}.mp4`;
-            const ad_name = videoInfo.file_name;
+            const fileNameWithTimestamp = `${videoInfo.file_name}-API_Upload-${TIMESTAMP}.mp4`;
+            const ad_name = fileNameWithTimestamp;
             await new Promise((res) => setTimeout(res, 5000)); // wait for 3 seconds
             const imageId = await getSuggestedCoverImageId(
                 `${videoId}`,
@@ -123,7 +123,7 @@ async function ProcessTiktokOneVideos(rows) {
                             adgroupId: group.adgroup_id,
                             oldMediaInfoList: adAcoData.list[0].media_info_list,
                             newVideoId: videoId,
-                            newVideoName: originalFilename,
+                            newVideoName: fileNameWithTimestamp,
                             newWebUris: imageId,
                         });
                         console.log(

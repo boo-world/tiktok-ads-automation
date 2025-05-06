@@ -68,19 +68,19 @@ async function processImageAds(rows) {
             const url = imageUrls[i];
             const { buffer, originalFilename } = await getOriginalFilenameFromUrl(url);
             console.log('filename:', originalFilename)
+            const fileNameWithTimestamp = originalFilename.replace(/(\.[^/.]+)?$/, `-API_Upload-${TIMESTAMP}$1`)
             if(i === 0){
-                firstFilename = originalFilename
+                firstFilename = fileNameWithTimestamp
             }
-            const imageId = await uploadImage(originalFilename.replace(/(\.[^/.]+)?$/, `-API_Upload-${TIMESTAMP}$1`),buffer);
+            const imageId = await uploadImage(fileNameWithTimestamp,buffer);
             imageIds.push(imageId);
         }
         console.log('imageIds: ', imageIds)
         file_processed = 'SUCCESS'
 
         const adFormat = 'CAROUSEL_ADS' //always use CAROUSEL_ADS to avoid unsupported image size when using SINGLE_IMAGE
-        const fileNameWithoutExt = firstFilename.replace(/\.[^/.]+$/, '');
-        const adGroupKeyword = groupKeyword(fileNameWithoutExt)
-        console.log('fileNameWithoutExt: ', fileNameWithoutExt)
+        const adGroupKeyword = groupKeyword(firstFilename)
+        console.log('firstFilename: ', firstFilename)
         console.log('adGroupKeyword: ', adGroupKeyword)
         
 
@@ -99,7 +99,7 @@ async function processImageAds(rows) {
         }
         console.log('adGroups: ', adGroups)
       for (const group of adGroups) {
-        let ad_name = fileNameWithoutExt
+        let ad_name = firstFilename
         if(DRYRUN === 'NO' && GROUP_TEST_ONLY === 'NO' && (group.adgroup_id === '1830897501983745' || group.adgroup_id === '1830897358117905')){
           csvLogger.logImage(row.image_url,
             {
